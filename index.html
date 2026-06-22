@@ -1,4 +1,4 @@
-<!-- MLET-20260621164125 -->
+<!-- MLET-20260622081736 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -367,9 +367,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_fAdJHvmA5zNGn5OFM7HOGg_qa_ctorQ';
         </div>
 
         <div id="emsg" style="display:none;margin-top:10px;"></div>
-        <div id="debug-panel" style="background:#f0f2f5;border:1px solid #ccc;border-radius:6px;padding:10px;margin-top:10px;font-size:11px;font-family:monospace;display:none;">
-          <strong>Debug Info</strong><div id="debug-out"></div>
-        </div>
+</div>
       </div>
     </div>
 
@@ -757,7 +755,7 @@ async function fetchEntryDateSubs(){
   const{data}=await sb.from('submissions').select('*').eq('sub_date',d);
   entrySubCache=data||[];
 }
-function entryDate(){const el=document.getElementById('entry-date');return el&&el.value?el.value:today();}
+function entryDate(){const el=document.getElementById('entry-date');const v=el&&el.value?el.value.trim():'';return v||today();}
 function subFor(vd,hour){return entrySubCache.find(s=>s.vd===vd&&s.hour===hour);}
 function subsForVd(vd){return entrySubCache.filter(s=>s.vd===vd);}
 function cumFor(vd,field,untilHour){
@@ -790,6 +788,8 @@ function initEntry(){
   // Set entry date to today by default
   const entryDateEl=document.getElementById('entry-date');
   if(entryDateEl&&!entryDateEl.value)entryDateEl.value=today();
+  // Ensure max date is not restricted
+  if(entryDateEl)entryDateEl.removeAttribute('max');
   // Auto-select cluster if only one assigned, then load its wards immediately
   if(CU.ward){
     const autoC=Object.keys(CLUSTERS).find(c=>CLUSTERS[c].includes(+CU.ward));
@@ -936,7 +936,9 @@ async function submitEntry(){
   if(!vd||!hour){showMsg('emsg','Select VD and hour first.','err');return;}
   const btnId=hour==='08:00'?'sub-btn-8':hour==='17:30'?'sub-btn-1730':'sub-btn-h';
   setBtn(btnId,'Saving...',true);
-  const subDate=entryDate();
+  // Get entry date - ensure it is a valid YYYY-MM-DD string
+  const rawDate=document.getElementById('entry-date')?.value||'';
+  const subDate=rawDate.trim()||today();
   let row={vd,hour,ward,cluster,sub_date:subDate,submitted_by:CU.name};
   if(hour==='08:00'){
     row.vd_status=document.getElementById('f-vs').value;
@@ -964,7 +966,7 @@ async function submitEntry(){
   if(error){showMsg('emsg','❌ Save failed: '+error.message,'err');return;}
   // Fetch fresh data for the entry date into BOTH caches
   const{data:fresh}=await sb.from('submissions').select('*').eq('sub_date',subDate);
-  if(dbgOut)dbgOut.innerHTML+=`<br>Fetched back: ${fresh?fresh.length:0} records for date ${subDate}<br>17:30 record: ${fresh?JSON.stringify(fresh.find(s=>s.vd===vd&&s.hour==='17:30')||'none'):'none'}`;
+  
   entrySubCache=fresh||[];
   subCache=fresh||[];
   // Sync dashboard date picker to entry date
@@ -973,7 +975,7 @@ async function submitEntry(){
   // Show tick immediately on hour progress
   renderHourProgress(vd);
   // Show success message
-  showMsg('emsg',`✅ ${hour} report for "${vd}" saved successfully!`,'ok');
+  showMsg('emsg',`✅ ${hour} report for "${vd}" saved for ${subDate}`,'ok');
   // After 1.5s: reset form and reload dashboard
   setTimeout(()=>{
     hideMsg('emsg');
