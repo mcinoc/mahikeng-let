@@ -1,4 +1,4 @@
-<!-- MLET-20260622083949 -->
+<!-- MLET-20260622091547 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -745,14 +745,14 @@ async function fetchTodaySubs(forDate){
   if(!sb)return;
   let d=forDate;
   if(!d){const dateEl=document.getElementById('dash-date');d=dateEl&&dateEl.value?dateEl.value:today();}
-  const{data}=await sb.from('submissions').select('*').eq('sub_date',d);
+  const{data}=await sb.from('submissions').select('*').eq('sub_date',d).limit(2000);
   subCache=data||[];
 }
 let entrySubCache=[];
 async function fetchEntryDateSubs(){
   if(!sb)return;
   const d=entryDate();
-  const{data}=await sb.from('submissions').select('*').eq('sub_date',d);
+  const{data}=await sb.from('submissions').select('*').eq('sub_date',d).limit(2000);
   entrySubCache=data||[];
 }
 function entryDate(){
@@ -975,7 +975,7 @@ async function submitEntry(){
   setBtn(btnId,hour==='08:00'?'Submit 08:00 Report':hour==='17:30'?'Submit Closing Status':'Submit',false);
   if(error){showMsg('emsg','❌ Save failed: '+error.message,'err');return;}
   // Single fresh fetch — feeds both caches
-  const{data:fresh}=await sb.from('submissions').select('*').eq('sub_date',subDate);
+  const{data:fresh}=await sb.from('submissions').select('*').eq('sub_date',subDate).limit(2000);
   entrySubCache=fresh||[];
   subCache=fresh||[];
   // Pin dashboard date picker to submitted date
@@ -1168,7 +1168,7 @@ async function generateReport(){
   document.getElementById('rpt-out').innerHTML='<div class="alert a-warn">Loading report data...</div>';
   const rptDateEl=document.getElementById('rpt-date');
   const rptDate=rptDateEl&&rptDateEl.value?rptDateEl.value:today();
-  let q=sb.from('submissions').select('*').eq('sub_date',rptDate);
+  let q=sb.from('submissions').select('*').eq('sub_date',rptDate).limit(2000);
   const{data:rawSubs}=await q;
   const allSubs=rawSubs||[];
   let wards=allowedWards(CU);
