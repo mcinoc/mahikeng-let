@@ -1,4 +1,4 @@
-<!-- Mahikeng LET VR Day v2.5 | 2026-06-21 15:13 -->
+<!-- MLET-20260621164125 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -374,6 +374,12 @@ const SUPABASE_ANON_KEY = 'sb_publishable_fAdJHvmA5zNGn5OFM7HOGg_qa_ctorQ';
             <button class="btn btn-out btn-sm" onclick="loadDashboard()">↻</button>
           </div>
         </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <label style="font-size:12px;font-weight:700;color:var(--gr7);">DATE</label>
+            <input type="date" id="dash-date" style="font-size:12px;padding:5px 8px;border:1.5px solid var(--gr3);border-radius:var(--r);" onchange="loadDashboard()">
+          </div>
+        </div>
         <div id="dash-body"><div class="alert a-warn">Loading dashboard...</div></div>
       </div>
     </div>
@@ -383,7 +389,10 @@ const SUPABASE_ANON_KEY = 'sb_publishable_fAdJHvmA5zNGn5OFM7HOGg_qa_ctorQ';
       <div class="card noprint">
         <div class="ch"><h2>📄 Reports & Export</h2></div>
         <div class="row2">
-          <div class="fg"><label class="lbl">Cluster</label>
+          <div class="fg"><label class="lbl">Date</label>
+          <input type="date" id="rpt-date" style="font-size:13px;padding:7px 10px;border:1.5px solid var(--gr3);border-radius:var(--r);width:100%;">
+        </div>
+        <div class="fg"><label class="lbl">Cluster</label>
             <select id="rc" onchange="rCluster()"><option value="">All</option></select>
           </div>
           <div class="fg"><label class="lbl">Ward</label>
@@ -726,7 +735,9 @@ function doLogout(){
 // ==================== SUB CACHE ====================
 async function fetchTodaySubs(){
   if(!sb)return;
-  const{data}=await sb.from('submissions').select('*').eq('sub_date',today());
+  const dateEl=document.getElementById('dash-date');
+  const d=dateEl&&dateEl.value?dateEl.value:today();
+  const{data}=await sb.from('submissions').select('*').eq('sub_date',d);
   subCache=data||[];
 }
 function subFor(vd,hour){return subCache.find(s=>s.vd===vd&&s.hour===hour);}
@@ -930,6 +941,9 @@ function populateDashFilter(){
 }
 async function loadDashboard(){
   document.getElementById('dash-body').innerHTML='<div class="alert a-warn">Loading...</div>';
+  // Set default date to today if not already set
+  const dateEl=document.getElementById('dash-date');
+  if(dateEl&&!dateEl.value)dateEl.value=today();
   await fetchTodaySubs();
   const fc=document.getElementById('df').value;
   const subs=subCache.filter(s=>s.hour!=='08:00'&&(!fc||s.cluster===fc));
@@ -1044,6 +1058,9 @@ function renderVdGrid(){
 
 // ==================== REPORTS ====================
 function populateReportFilters(){
+  // Set default report date to today
+  const rptDateEl=document.getElementById('rpt-date');
+  if(rptDateEl&&!rptDateEl.value)rptDateEl.value=today();
   const rc=document.getElementById('rc');
   rc.innerHTML='<option value="">All</option>';
   allowedClusters(CU).forEach(c=>rc.innerHTML+=`<option value="${c}">${CLUSTER_NAMES[c]}</option>`);
@@ -1074,7 +1091,9 @@ async function generateReport(){
   const fi=HOURS.indexOf(fr),ti=HOURS.indexOf(ft);
   const hrs=HOURS.slice(fi,ti+1).filter(h=>h!=='08:00');
   document.getElementById('rpt-out').innerHTML='<div class="alert a-warn">Loading report data...</div>';
-  let q=sb.from('submissions').select('*').eq('sub_date',today());
+  const rptDateEl=document.getElementById('rpt-date');
+  const rptDate=rptDateEl&&rptDateEl.value?rptDateEl.value:today();
+  let q=sb.from('submissions').select('*').eq('sub_date',rptDate);
   const{data:rawSubs}=await q;
   const allSubs=rawSubs||[];
   let wards=allowedWards(CU);
@@ -1111,7 +1130,7 @@ async function generateReport(){
   out.innerHTML=`<div class="card" id="prpt">
     <div class="ph"><h2 style="color:var(--gd);">MAHIKENG LET — VOTER REGISTRATION DAY</h2>
     <p>Date: ${today()} | Generated: ${new Date().toLocaleString('en-ZA')}</p>
-    <p>Filter: ${fc?CLUSTER_NAMES[fc]:'All Clusters'} | Ward ${fw||'All'} | Status: ${fst||'All'} | ${fr}–${ft}</p><hr style="margin:8px 0;"></div>
+    <p>Date: ${rptDate} | Filter: ${fc?CLUSTER_NAMES[fc]:'All Clusters'} | Ward ${fw||'All'} | Status: ${fst||'All'} | ${fr}–${ft}</p><hr style="margin:8px 0;"></div>
     <div class="ch"><h2>Report: ${fr} – ${ft} | ${fv||'All VDs'}</h2></div>
     <div class="sc-grid">
       <div class="sc"><div class="v">${gA}</div><div class="l">ANC Registrations</div></div>
